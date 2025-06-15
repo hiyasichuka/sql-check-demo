@@ -2,11 +2,6 @@ name: Check SQL Patterns
 
 on:
   push:
-    paths:
-      - '**/*.sql'
-  pull_request:
-    paths:
-      - '**/*.sql'
 
 jobs:
   check:
@@ -14,13 +9,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Detect changed SQL files
+        id: detect
+        run: |
+          git fetch --no-tags origin ${{ github.base_ref }}
+          sql_files=$(git diff origin/${{ github.base_ref }} --name-only --diff-filter=d -- '*.sql')
+          echo "$sql_files" > changed_sql_files.txt
+
       - name: Check disallowed SQL patterns
         run: |
-          set -euo pipefail
-
-          echo "Filtering target SQL files..."
-
-                    target_files=$(
+          target_files=$(
             for file in $(cat changed_sql_files.txt); do
               [[ ! -f "$file" ]] && continue
               grep -q -F "$file" ignore_sql_statement_check.conf 2>/dev/null && continue
