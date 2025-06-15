@@ -18,37 +18,29 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "��� Filtering target SQL files..."
+          echo "Filtering target SQL files..."
 
-          target_files=$(
-            while IFS= read -r file; do
+                    target_files=$(
+            for file in $(cat changed_sql_files.txt); do
               [[ ! -f "$file" ]] && continue
               grep -q -F "$file" ignore_sql_statement_check.conf 2>/dev/null && continue
-              grep -qiE 'CREATE\s+(OR\s+REPLACE\s+)?VIEW' "$file" && continue
+              grep -qiE 'CREATE\s+VIEW' "$file" && continue
               echo "$file"
-            done < changed_sql_files.txt
+            done
           )
 
-          if [[ -z "${target_files//[[:space:]]/}" ]]; then
+          if [[ -z "$target_files" ]]; then
             echo "✅ No target SQL files to check."
             exit 0
           fi
 
-          echo "��� Checking for disallowed SQL patterns..."
           err=0
-
-          while IFS= read -r f; do
-            if match=$(grep -oiE "DROP\s+TABLE|CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP" "$f" || true); then
-              if [[ -n "$match" ]]; then
-                echo "::error file=$f::❌ Disallowed SQL pattern detected: $match"
-                err=1
-              fi
+          for f in $target_files; do
+            if grep -iqE "DROP\s+TABLE|CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP" "$f"; then
+              echo "::error file=$f::❌ Disallowed SQL pattern detected"
+              err=1
             fi
-          done <<< "$target_files"
+          done
 
-          if [[ $err -eq 1 ]]; then
-            echo "❌ SQL pattern check failed."
-            exit 1
-          else
-            echo "✅ All checked SQL files passed."
-          fi
+          [ $err -eq 1 ] && exit 1
+          echo "✅ All checked SQL files passed."
