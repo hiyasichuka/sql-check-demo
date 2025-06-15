@@ -12,8 +12,8 @@ jobs:
       - name: Detect changed SQL files
         id: detect
         run: |
-          git fetch --no-tags origin ${{ github.base_ref }}
-          sql_files=$(git diff origin/${{ github.base_ref }} --name-only --diff-filter=d -- '*.sql')
+          git fetch --no-tags origin main
+          sql_files=$(git diff origin/main --name-only --diff-filter=d -- '*.sql')
           echo "$sql_files" > changed_sql_files.txt
 
       - name: Check disallowed SQL patterns
