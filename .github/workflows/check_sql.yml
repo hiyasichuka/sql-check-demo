@@ -22,7 +22,7 @@ jobs:
             for file in $(cat changed_sql_files.txt); do
               [[ ! -f "$file" ]] && continue
               grep -q -F "$file" ignore_sql_statement_check.conf 2>/dev/null && continue
-              grep -qiE 'CREATE\s+VIEW' "$file" && continue
+              grep -qiE 'CREATE(\s+OR\s+REPLACE)?\s+VIEW' "$file" && continue
               echo "$file"
             done
           )
