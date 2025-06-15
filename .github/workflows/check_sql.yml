@@ -27,18 +27,25 @@ jobs:
             done
           )
 
+          echo "🔍 Target files to check:"
+          echo "$target_files"
+
+
           if [[ -z "$target_files" ]]; then
             echo "✅ No target SQL files to check."
             exit 0
           fi
 
           err=0
-          for f in $target_files; do
-            if grep -iqE "DROP\s+TABLE|CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP" "$f"; then
-              echo "::error file=$f::❌ Disallowed SQL pattern detected"
+
+          while IFS= read -r f; do
+            # マッチした禁止パターンを抽出
+            match=$(grep -oiE "DROP\s+TABLE|CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP" "$f" || true)
+            if [[ -n "$match" ]]; then
+              echo "::error file=$f::❌ Disallowed SQL pattern detected: $match"
               err=1
             fi
-          done
+          done <<< "$target_files"
 
           [ $err -eq 1 ] && exit 1
           echo "✅ All checked SQL files passed."
