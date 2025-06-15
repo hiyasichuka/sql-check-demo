@@ -1,0 +1,2 @@
+-- test SQL
+SELECT CURRENT_DATE();

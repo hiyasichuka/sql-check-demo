@@ -1,0 +1,54 @@
+name: Check SQL Patterns
+
+on:
+  push:
+    paths:
+      - '**/*.sql'
+  pull_request:
+    paths:
+      - '**/*.sql'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check disallowed SQL patterns
+        run: |
+          set -euo pipefail
+
+          echo "��� Filtering target SQL files..."
+
+          target_files=$(
+            while IFS= read -r file; do
+              [[ ! -f "$file" ]] && continue
+              grep -q -F "$file" ignore_sql_statement_check.conf 2>/dev/null && continue
+              grep -qiE 'CREATE\s+(OR\s+REPLACE\s+)?VIEW' "$file" && continue
+              echo "$file"
+            done < changed_sql_files.txt
+          )
+
+          if [[ -z "${target_files//[[:space:]]/}" ]]; then
+            echo "✅ No target SQL files to check."
+            exit 0
+          fi
+
+          echo "��� Checking for disallowed SQL patterns..."
+          err=0
+
+          while IFS= read -r f; do
+            if match=$(grep -oiE "DROP\s+TABLE|CURRENT_DATE|CURRENT_TIME|CURRENT_TIMESTAMP" "$f" || true); then
+              if [[ -n "$match" ]]; then
+                echo "::error file=$f::❌ Disallowed SQL pattern detected: $match"
+                err=1
+              fi
+            fi
+          done <<< "$target_files"
+
+          if [[ $err -eq 1 ]]; then
+            echo "❌ SQL pattern check failed."
+            exit 1
+          else
+            echo "✅ All checked SQL files passed."
+          fi
