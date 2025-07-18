@@ -1,0 +1,19 @@
+name: sqlfluff with reviewdog
+
+on:
+  pull_request:
+
+jobs:
+  lint-sql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: hiyasichuka/action-sqlfluff@add-extra-args-support
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          sqlfluff_version: '3.3.0'
+          sqlfluff_command: 'fix'
+          config: '${{ github.workspace }}/.sqlfluff'
+          paths: '${{ github.workspace }}/'
+          extra-args: '--ignore parsing'
